@@ -14,6 +14,7 @@ require('dotenv').config({silent: true})
   'BOT_CHANCE', // Chance to stream on each roll as a percentage (should be 10)
   'BOT_FREQUENCY', // Frequency of rolls for broadcasts in minutes (should be 120)
   'BOT_GUILDID', // Guild ID to run in
+  'BOT_STAFFGUILD', // Staff guild ID (for setting the default icon to pretend nothing is happening)
   'BOT_LOGCHANNEL', // Channel ID to log statistics and stream events to
   'BOT_MGMNTCHANNEL', // Channel to accept commands from
   'DISCORD_NUMBERTOKEN', // Discord authentication token for the streaming bot
