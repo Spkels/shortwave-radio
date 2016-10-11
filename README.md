@@ -6,6 +6,7 @@ A lot of the tracks in this bot are recordings of shortwave numbers stations, he
 ### Install
 To install, pull the code and run `npm install` in the directory.
 You need `build-essential` (or equivalent) on Linux to install, or MSBuild on Windows.
+You will also need `ffmpeg` or `avconv` in the PATH in order to stream audio (otherwise the bot will not stream).
 
 You also need a load of environment variables to configure the bot, you can see the list [in the code](https://github.com/DiscordFM/shortwave-radio/blob/master/src/bot.js#L12 "bot.js env declarations").
 
