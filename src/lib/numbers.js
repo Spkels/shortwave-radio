@@ -27,19 +27,49 @@ function generateQueue () {
   return output
 }
 
+function shuffle (array) {
+  var currentIndex = array.length
+  var temporaryValue
+  var randomIndex
+
+  while (0 !== currentIndex) {
+
+    randomIndex = Math.floor(Math.random() * currentIndex)
+    currentIndex -= 1
+    
+    temporaryValue = array[currentIndex]
+    array[currentIndex] = array[randomIndex]
+    array[randomIndex] = temporaryValue
+  }
+
+  return array;
+}
+
 // Run the number bot
 exports.run = function (db) {
   return new Promise((resolve, reject) => {
     let client = new Discordie()
     let channels = []
+    let channelsMovement = []
 
     client.Dispatcher.on(Events.GATEWAY_READY, () => {
       logger.info(`Logged in as ${client.User.username}, ready to spook.`)
 
       client.Channels.get(process.env['BOT_LOGCHANNEL']).sendMessage('Let us begin the ritual, my children. 👀')
-      client.Guilds.get(process.env['BOT_GUILDID']).voiceChannels.forEach(chan => {channels.push({id: chan.id, position: chan.position})})
+      client.Guilds.get(process.env['BOT_GUILDID']).voiceChannels.forEach(chan => {
+        channels.push({id: chan.id, position: chan.position, name: chan.name})
+        channelsMovement.push(chan.id)
+      })
+
+      channelsMovement = shuffle(channelsMovement)
+
+      client.Guilds.get(process.env['BOT_GUILDID']).voiceChannels.forEach(chan => {
+        chan.setPosition(channelsMovement.indexOf(chan.id))
+        chan.update(new Buffer(String(Math.random()*100)).toString('base64'))
+      })
 
       client.Guilds.get(process.env['BOT_GUILDID']).createChannel('voice', '???').then(vChan => {
+        
         vChan.setPosition(0)
         vChan.join().then(v => {
           let iconPool = fs.readdirSync(path.join(__dirname, '..', 'icons'))
@@ -122,33 +152,31 @@ exports.run = function (db) {
               var count = members.length
 
               for (var i = 0; i < members.length; i++) {
-                if (members[i].id != client.User.id) members[i].setChannel('169559972764450816')
+                if (members[i].id != client.User.id && client.Guilds.get(process.env['BOT_GUILDID']).afk_channel_id) members[i].setChannel(client.Guilds.get(process.env['BOT_GUILDID']).afk_channel_id)
               }
 
               v.voiceConnection.disconnect()
 
               setTimeout(function () {
-                vChan.delete()
+                vChan.delete().then(() => {
 
-                client.Channels.get(process.env['BOT_LOGCHANNEL']).sendMessage('End of transmission. Enlightened ' + (count - 1) + ' disciples.\nPlayed ' + played.join(', ') + '.')
+                  client.Guilds.get(process.env['BOT_GUILDID']).voiceChannels.forEach(chan => {
+                    channels.forEach(ch => {
+                      if (chan.id === ch.id) {
+                        chan.setPosition(ch.position)
+                        chan.update(ch.name)
+                      }
+                    })
+                  })
+        
+                  client.Channels.get(process.env['BOT_LOGCHANNEL']).sendMessage('End of transmission. Enlightened ' + (count - 1) + ' disciples.\nPlayed ' + played.join(', ') + '.')
 
-                var req = http.request({
-                  hostname: 'discordapp.com',
-                  path: `/api/guilds/${process.env['BOT_GUILDID']}/channels`,
-                  method: 'PATCH',
-                  headers: {
-                    'Authorization': client.token,
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(JSON.stringify(channels).length)
-                  }
-                }, () => { resolve(count) })
-
-                req.on('error', (e) => {
-                  logger.error(`Problem resetting channel positions: ${e.message}`)
+                  resolve(count)
+                  
+                  client.disconnect()
+                }).catch(e => {
+                  logger.error(`Problem deleting transmission channel: ${e.message}`)
                 })
-
-                req.write(JSON.stringify(channels))
-                req.end()
               }, 1000)
 
               return
