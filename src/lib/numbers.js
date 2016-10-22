@@ -69,7 +69,6 @@ exports.run = function (db) {
       })
 
       client.Guilds.get(process.env['BOT_GUILDID']).createChannel('voice', '???').then(vChan => {
-        
         vChan.setPosition(0)
         vChan.join().then(v => {
           let iconPool = fs.readdirSync(path.join(__dirname, '..', 'icons'))
@@ -159,7 +158,6 @@ exports.run = function (db) {
 
               setTimeout(function () {
                 vChan.delete().then(() => {
-
                   client.Guilds.get(process.env['BOT_GUILDID']).voiceChannels.forEach(chan => {
                     channels.forEach(ch => {
                       if (chan.id === ch.id) {
@@ -170,9 +168,7 @@ exports.run = function (db) {
                   })
         
                   client.Channels.get(process.env['BOT_LOGCHANNEL']).sendMessage('End of transmission. Enlightened ' + (count - 1) + ' disciples.\nPlayed ' + played.join(', ') + '.')
-
                   resolve(count)
-                  
                   client.disconnect()
                 }).catch(e => {
                   logger.error(`Problem deleting transmission channel: ${e.message}`)
