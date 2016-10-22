@@ -51,7 +51,7 @@ exports.run = function (db) {
 
           fs.readFile(path.join(__dirname, '..', 'default.png'), null, (err, icon) => {
             if (!err) {
-              client.Guilds.get(process.env['BOT_STAFFGUILD']).edit(null, icon, null, undefined, null, null)
+              client.Guilds.get(process.env['BOT_STAFFGUILD']).edit(null, icon, null, undefined, null, null).catch(err => logger.error('Failed to set staff guild icon: ' + err))
             }
           })
 
@@ -65,7 +65,7 @@ exports.run = function (db) {
 
             fs.readFile(path.join(__dirname, '..', 'icons', icon), null, (err, icon) => {
               if (!err) {
-                client.Guilds.get(process.env['BOT_GUILDID']).edit(null, icon, null, undefined, null, null)
+                client.Guilds.get(process.env['BOT_GUILDID']).edit(null, icon, null, undefined, null, null).catch(err => logger.error('Failed to set main guild icon: ' + err))
               }
               setTimeout(setIcon, 3*60*1000)
             })
@@ -93,7 +93,7 @@ exports.run = function (db) {
                   }
                 }
               }
-            }, { upsert: true })
+            }, { upsert: true }).catch(err => logger.error('Failed to set db queue info: ' + err))
 
             setTimeout(setDb, 30*1000)
           }
@@ -110,23 +110,25 @@ exports.run = function (db) {
 
               fs.readFile(path.join(__dirname, '..', 'default.png'), null, (err, icon) => {
                 if (!err) {
-                  client.Guilds.get(process.env['BOT_GUILDID']).edit(null, icon, null, undefined, null, null)
+                  client.Guilds.get(process.env['BOT_GUILDID']).edit(null, icon, null, undefined, null, null).catch(err => logger.error('Failed to reset main guild icon: ' + err))
                 }
               })
 
               fs.readFile(path.join(__dirname, '..', 'staff.png'), null, (err, icon) => {
                 if (!err) {
-                  client.Guilds.get(process.env['BOT_STAFFGUILD']).edit(null, icon, null, undefined, null, null)
+                  client.Guilds.get(process.env['BOT_STAFFGUILD']).edit(null, icon, null, undefined, null, null).catch(err => logger.error('Failed to reset staff guild icon: ' + err))
                 }
               })
 
-              db.get('queue').remove({bot: '???'})
+              db.get('queue').remove({bot: '???'}).catch(err => logger.error('Failed to remove queue information from db: ' + err))
 
               let members = v.voiceConnection.channel.members
               var count = members.length
 
-              for (var i = 0; i < members.length; i++) {
-                if (members[i].id != client.User.id && client.Guilds.get(process.env['BOT_GUILDID']).afk_channel_id) members[i].setChannel(client.Guilds.get(process.env['BOT_GUILDID']).afk_channel_id)
+              if (client.Guilds.get(process.env['BOT_GUILDID']).afk_channel_id !== null) {
+                for (var i = 0; i < members.length; i++) {
+                  if (members[i].id != client.User.id && client.Guilds.get(process.env['BOT_GUILDID']).afk_channel_id) members[i].setChannel(client.Guilds.get(process.env['BOT_GUILDID']).afk_channel_id).catch(err => logger.error('Failed to move user to AFK: ' + err))
+                }
               }
 
               v.voiceConnection.disconnect()
