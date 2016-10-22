@@ -27,44 +27,19 @@ function generateQueue () {
   return output
 }
 
-function shuffle (array) {
-  var currentIndex = array.length
-  var temporaryValue
-  var randomIndex
-
-  while (0 !== currentIndex) {
-
-    randomIndex = Math.floor(Math.random() * currentIndex)
-    currentIndex -= 1
-    
-    temporaryValue = array[currentIndex]
-    array[currentIndex] = array[randomIndex]
-    array[randomIndex] = temporaryValue
-  }
-
-  return array;
-}
-
 // Run the number bot
 exports.run = function (db) {
   return new Promise((resolve, reject) => {
     let client = new Discordie()
     let channels = []
-    let channelsMovement = []
 
     client.Dispatcher.on(Events.GATEWAY_READY, () => {
       logger.info(`Logged in as ${client.User.username}, ready to spook.`)
 
       client.Channels.get(process.env['BOT_LOGCHANNEL']).sendMessage('Let us begin the ritual, my children. 👀')
+
       client.Guilds.get(process.env['BOT_GUILDID']).voiceChannels.forEach(chan => {
         channels.push({id: chan.id, position: chan.position, name: chan.name})
-        channelsMovement.push(chan.id)
-      })
-
-      channelsMovement = shuffle(channelsMovement)
-
-      client.Guilds.get(process.env['BOT_GUILDID']).voiceChannels.forEach(chan => {
-        chan.setPosition(channelsMovement.indexOf(chan.id))
         chan.update(new Buffer(String(Math.random()*100)).toString('base64'))
       })
 
@@ -158,14 +133,23 @@ exports.run = function (db) {
 
               setTimeout(function () {
                 vChan.delete().then(() => {
-                  client.Guilds.get(process.env['BOT_GUILDID']).voiceChannels.forEach(chan => {
-                    channels.forEach(ch => {
-                      if (chan.id === ch.id) {
-                        chan.setPosition(ch.position)
-                        chan.update(ch.name)
-                      }
-                    })
+                  var req = http.request({
+                    hostname: 'discordapp.com',
+                    path: `/api/guilds/${process.env['BOT_GUILDID']}/channels`,
+                    method: 'PATCH',
+                    headers: {
+                      'Authorization': 'Bot ' + client.token,
+                      'Content-Type': 'application/json',
+                      'Content-Length': Buffer.byteLength(JSON.stringify(channels).length)
+                    }
+                  }, () => { resolve(count) })
+ 
+                  req.on('error', (e) => {
+                    logger.error(`Problem resetting channel positions: ${e.message}`)
                   })
+ 
+                  req.write(JSON.stringify(channels))
+                  req.end()
         
                   client.Channels.get(process.env['BOT_LOGCHANNEL']).sendMessage('End of transmission. Enlightened ' + (count - 1) + ' disciples.\nPlayed ' + played.join(', ') + '.')
                   resolve(count)
